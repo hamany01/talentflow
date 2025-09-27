@@ -1,17 +1,18 @@
+# TalentFlow HRjeddah (Next.js + Supabase)
 
-# TalentFlow (HRjeddah) — Branded Starter
+## البيئة
+ضع هذه المتغيرات في Vercel (أو `.env.local` للتجربة المحلية):
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
 
-Brand: Jeddah Paints Factory / شركة مصنع جدة للدهانات والمعاجين  
-Colors: Primary #31489D, Secondary #DF2D2F, Accent #7C8ABC  
-Logo: `/public/logo.png`
+## الجداول المتوقعة
+- jobs(id serial pk, title text, location text, type text, description text, requirements text, status text default 'open')
+- applications(id serial pk, job_id int, full_name text, email text, phone text, summary text, cv_url text, status text default 'new', created_at timestamptz default now())
 
-## Quick Start
-1) Supabase → run `supabase/schema.sql`, then `supabase/policies.sql`, then (optional) `supabase/seed.sql`.
-2) Storage → create bucket `cv` (private).
-3) Env:
-   - NEXT_PUBLIC_SUPABASE_URL = https://tgyeozdjcwutmaiqzemw.supabase.co
-   - NEXT_PUBLIC_SUPABASE_ANON_KEY = (see .env.local)
-4) Deploy on Vercel (Hobby). First signup → set role admin with `supabase/admin.sql`.
-
-## Branding
-- Colors and logo are wired in `lib/theme.ts` and `app/layout.tsx`.
+## تشغيل محلي
+```
+npm install
+npm run dev
+```

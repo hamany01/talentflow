@@ -1,32 +1,26 @@
+import { supabase } from "@/lib/supabaseClient";
 
-'use client';
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { BRAND } from '@/lib/theme';
+export default async function JobPage({ params }: { params: { id: string } }) {
+  const id = Number(params.id);
+  const { data: job } = await supabase.from("jobs")
+    .select("*").eq("id", id).single();
 
-export default function JobDetails() {
-  const params = useParams();
-  const [job, setJob] = useState<any>(null);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from('jobs').select('*').eq('id', Number(params?.id)).single();
-      setJob(data);
-    })();
-  }, [params?.id]);
-
-  if (!job) return <p>جارِ التحميل...</p>;
+  if (!job) {
+    return <div className="card"><h1 className="title">الوظيفة غير موجودة</h1></div>;
+  }
 
   return (
-    <main>
-      <h2 style={{ color: BRAND.colors.secondary }}>{job.title}</h2>
-      <p><b>الموقع:</b> {job.location || 'غير محدد'} | <b>النوع:</b> {job.type || 'دوام كامل'}</p>
-      <h3>الوصف</h3>
-      <p style={{ whiteSpace:'pre-wrap' }}>{job.description}</p>
-      <h3>المتطلبات</h3>
-      <p style={{ whiteSpace:'pre-wrap' }}>{job.requirements}</p>
-      <a href={`/apply/${job.id}`} style={{ color:BRAND.colors.primary }}>التقديم على هذه الوظيفة</a>
-    </main>
+    <div className="space-y-6">
+      <h1 className="title">{job.title}</h1>
+      <div className="card">
+        <p>الموقع: {job.location} — النوع: {job.type}</p>
+        <h3 className="subtitle">الوصف</h3>
+        <p className="text-gray-700">{job.description}</p>
+        <h3 className="subtitle">المتطلبات</h3>
+        <p className="text-gray-700">{job.requirements}</p>
+        <div style={{height:12}}/>
+        <a className="badge" href={`/apply/${job.id}`}>التقديم على هذه الوظيفة</a>
+      </div>
+    </div>
   );
 }

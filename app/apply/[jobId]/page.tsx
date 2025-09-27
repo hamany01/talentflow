@@ -1,92 +1,74 @@
 'use client';
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
 
-export default function ApplyPage() {
-  const { jobId } = useParams() as { jobId: string };
+import { supabase } from "@/lib/supabaseClient";
+import { useState } from "react";
+import { v4 as uuid } from "uuid";
 
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail]       = useState('');
-  const [phone, setPhone]       = useState('');
-  const [summary, setSummary]   = useState('');
-  const [file, setFile]         = useState<File | null>(null);
-  const [sending, setSending]   = useState(false);
+export default function ApplyPage({ params }: { params: { jobId: string }}) {
+  const jobId = Number(params.jobId);
+  const [full_name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [summary, setSummary] = useState('');
+  const [file, setFile] = useState<File|null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSending(true);
-
-    let cv_path: string | null = null;
-
-    // 1) ارفع الـCV إن وُجد (إلى bucket=cv)
-    try {
+  const submit = async () => {
+    setLoading(true);
+    try{
+      let cv_url: string | null = null;
       if (file) {
-        const ext = file.name.split('.').pop() || 'pdf';
-        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const path = `uploads/${name}`;
-
-        const { error: upErr } = await supabase
-          .storage
-          .from('cv')
-          .upload(path, file, {
-            contentType: file.type || 'application/pdf',
-            upsert: false
-          });
-
-        if (!upErr) cv_path = path;
-        else console.warn('CV upload failed:', upErr.message);
+        const ext = file.name.split('.').pop();
+        const path = `uploads/${uuid()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('cv').upload(path, file, { upsert: false });
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from('cv').getPublicUrl(path);
+        cv_url = data.publicUrl;
       }
-    } catch (err: any) {
-      console.warn('CV upload threw:', err?.message);
-    }
 
-    // 2) جهّز Payload “مسموح فقط”
-    const payload: any = {
-      job_id: Number(jobId),
-      full_name: fullName.trim(),
-      email: email.trim(),
-      phone: phone.trim() || null,
-      summary: summary.trim() || null,
-      skills_text: summary.trim() || null,
-      cv_url: cv_path
-    };
+      const { error } = await supabase.from('applications').insert({
+        job_id: jobId, full_name, email, phone, summary, cv_url, status: 'new'
+      });
 
-    // احذف أي مفاتيح قيمتها undefined (حتى لا ترسل source أو مفاتيح غريبة)
-    Object.keys(payload).forEach((k) => {
-      if (payload[k] === undefined) delete payload[k];
-    });
-
-    // 3) أدخل الصف
-    try {
-      const { error } = await supabase.from('applications').insert(payload);
       if (error) throw error;
-      alert('تم إرسال طلبك بنجاح');
-      setFullName(''); setEmail(''); setPhone(''); setSummary(''); setFile(null);
-    } catch (err: any) {
-      console.error(err);
-      alert('حدث خطأ أثناء الإرسال: ' + (err?.message || ''));
-    } finally {
-      setSending(false);
+      alert('تم ارسال طلبك بنجاح');
+      setName(''); setEmail(''); setPhone(''); setSummary(''); setFile(null);
+    }catch(e:any){
+      console.error(e);
+      alert('حدث خطأ أثناء الإرسال');
+    }finally{
+      setLoading(false);
     }
   };
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto' }}>
-      <h2>التقديم على الوظيفة #{jobId}</h2>
-      <form onSubmit={onSubmit} style={{ display:'grid', gap:12 }}>
-        <input required placeholder="الاسم الكامل" value={fullName} onChange={e=>setFullName(e.target.value)} />
-        <input required type="email" placeholder="البريد الإلكتروني" value={email} onChange={e=>setEmail(e.target.value)} />
-        <input placeholder="رقم الجوال" value={phone} onChange={e=>setPhone(e.target.value)} />
-        <textarea rows={4} placeholder="مهاراتك / ملخص الخبرات" value={summary} onChange={e=>setSummary(e.target.value)} />
+    <div className="card">
+      <h1 className="title">التقديم على الوظيفة #{jobId}</h1>
+      <div className="grid" style={{gap:'1rem'}}>
         <div>
-          <input type="file" accept="application/pdf" onChange={e=>setFile(e.target.files?.[0] || null)} />
-          <small>رفع السيرة الذاتية (اختياري)</small>
+          <label>الاسم الكامل</label>
+          <input value={full_name} onChange={e=>setName(e.target.value)} placeholder="اسمك" />
         </div>
-        <button disabled={sending} style={{ padding: '10px 14px' }}>
-          {sending ? 'جارٍ الإرسال…' : 'إرسال'}
-        </button>
-      </form>
-    </main>
+        <div>
+          <label>البريد الإلكتروني</label>
+          <input value={email} onChange={e=>setEmail(e.target.value)} />
+        </div>
+        <div>
+          <label>رقم الجوال</label>
+          <input value={phone} onChange={e=>setPhone(e.target.value)} />
+        </div>
+        <div>
+          <label>مهاراتك / ملخص الخبرات</label>
+          <textarea rows={4} value={summary} onChange={e=>setSummary(e.target.value)} />
+        </div>
+        <div>
+          <label>رفع السيرة الذاتية (اختياري)</label>
+          <input type="file" onChange={e=>setFile(e.target.files?.[0] || null)} />
+        </div>
+        <div>
+          <button onClick={submit} disabled={loading}>{loading? '...جاري' : 'إرسال'}</button>
+        </div>
+      </div>
+    </div>
   );
 }

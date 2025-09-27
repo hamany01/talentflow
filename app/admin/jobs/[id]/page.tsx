@@ -1,46 +1,44 @@
+import { supabase } from "@/lib/supabaseClient";
+import Link from "next/link";
 
-'use client';
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { BRAND } from '@/lib/theme';
+type Props = { params: { id: string } };
 
-export default function JobCandidates() {
-  const params = useParams();
-  const jobId = Number(params?.id);
-  const [rows, setRows] = useState<any[]>([]);
+export default async function JobApplicants({ params }: Props) {
+  const jobId = Number(params.id);
+  if (Number.isNaN(jobId)) {
+    return <p style={{color:"#b91c1c"}}>معرّف غير صحيح.</p>;
+  }
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.rpc('get_applications_with_applicants', { p_job_id: jobId });
-      setRows(data || []);
-    })();
-  }, [jobId]);
+  const [{ data: job }, { data: apps }] = await Promise.all([
+    supabase.from("jobs").select("*").eq("id", jobId).single(),
+    supabase.from("applications").select("*").eq("job_id", jobId).order("id", { ascending: false }),
+  ]);
 
   return (
     <main>
-      <h2 style={{ color:BRAND.colors.primary }}>مرشحو الوظيفة #{jobId}</h2>
-      <table style={{ width:'100%', background:'#14171a', borderRadius:12, border:`1px solid ${BRAND.colors.accent}` }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign:'right', padding:8 }}>الاسم</th>
-            <th>المرحلة</th>
-            <th>ملاءمة AI</th>
-            <th>ملاحظات</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(r => (
-            <tr key={r.application_id}>
-              <td style={{ padding:8 }}>{r.full_name}</td>
-              <td>{r.stage}</td>
-              <td>{r.ai_score ?? '-'}</td>
-              <td><a style={{ color:BRAND.colors.secondary }} href={`/admin/applications/${r.application_id}`}>فتح</a></td>
-            </tr>
-          ))}
-          {rows.length===0 && <tr><td colSpan={4} style={{ padding:8 }}>لا يوجد مرشحون بعد.</td></tr>}
-        </tbody>
-      </table>
+      <h1 style={{fontSize:36, marginBottom:24}}>مرشحو الوظيفة #{jobId} — {job?.title ?? ""}</h1>
+      <div style={{display:"grid", gap:12}}>
+        {(apps ?? []).length === 0 && <div>لا يوجد مرشحون بعد.</div>}
+        {(apps ?? []).map(a => (
+          <div key={a.id} style={{background:"#fff", border:"1px solid #e5e7eb", borderRadius:16, padding:16}}>
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <div>
+                <div style={{fontWeight:700}}>{a.full_name}</div>
+                <div style={{opacity:.8, fontSize:14}}>{a.email} · {a.phone}</div>
+              </div>
+              {a.cv_url && <a href={a.cv_url} target="_blank" rel="noreferrer" style={{color:"#1e40af"}}>عرض السيرة</a>}
+            </div>
+            {a.ai_score != null && (
+              <div style={{marginTop:8, fontSize:14}}>ملاءمة AI: <b>{a.ai_score}%</b></div>
+            )}
+            {a.status && <div style={{marginTop:6, fontSize:14}}>المرحلة: {a.status}</div>}
+            {a.ai_notes && <div style={{marginTop:6, fontSize:14, opacity:.9}}>ملاحظات: {a.ai_notes}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:16}}>
+        <Link href="/admin/jobs" style={{color:"#1e40af"}}>رجوع للوظائف</Link>
+      </div>
     </main>
   );
 }

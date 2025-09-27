@@ -1,0 +1,5 @@
+:root{--ring:#bfdbfe}
+*{box-sizing:border-box}
+a{color:#1e40af;text-decoration:none}
+a:hover{text-decoration:underline}
+body{background:#fff}
