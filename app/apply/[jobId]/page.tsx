@@ -17,7 +17,8 @@ export default function ApplyPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const { data: applicant, error: e1 } = await supabase.from('applicants').insert({
+      const { data: applicant, error: e1 } = await supabase.from('applications')
+.insert({
         full_name: form.full_name, email: form.email, phone: form.phone, skills_text: form.skills_text
       }).select().single();
       if (e1) throw e1;
@@ -29,7 +30,7 @@ export default function ApplyPage() {
         if (upErr) throw upErr;
         const { data: pub } = await supabase.storage.from('cv').getPublicUrl(path);
         file_url = pub?.publicUrl || null;
-        await supabase.from('applicants').update({ cv_file_url: file_url }).eq('id', applicant.id);
+        await supabase.from('applications').update({ cv_file_url: file_url }).eq('id', applicant.id);
       }
 
       const { data: job } = await supabase.from('jobs').select('id, requirements').eq('id', jobId).single();
