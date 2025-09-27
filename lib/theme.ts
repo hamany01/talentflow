@@ -1,12 +1,12 @@
-
 export const BRAND = {
-  companyAr: "شركة مصنع جدة للدهانات والمعاجين",
-  companyEn: "Jeddah Paints Factory",
   colors: {
-    primary: "#31489D",
-    secondary: "#DF2D2F",
-    accent: "#7C8ABC",
-    bg: "#0b0c10",
-    text: "#eaf0f1"
+    primary: '#163f90',
+    secondary: '#b71c1c',
+    accent: '#0d6efd',
+    background: '#ffffff',   // أبيض
+    surface: '#ffffff',
+    text: '#111827',         // رمادي داكن
+    muted: '#6b7280',
+    border: '#e5e7eb'
   }
 };
